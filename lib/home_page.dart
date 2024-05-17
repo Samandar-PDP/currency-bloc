@@ -1,9 +1,10 @@
-import 'package:crypto_currency/animation_text.dart';
+import 'package:crypto_currency/currency_bloc.dart';
 import 'package:currency_picker/currency_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gap/gap.dart';
 
 class HomePage extends StatefulWidget {
@@ -16,6 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   Currency _currency1 = CurrencyService().getAll()[0];
   Currency _currency2 = CurrencyService().getAll()[0];
+  final _edit = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +89,7 @@ class _HomePageState extends State<HomePage> {
                                         borderRadius:
                                             BorderRadius.circular(10))),
                                 child: Text(
-                                  CurrencyUtils.currencyToEmoji(_currency1!),
+                                  CurrencyUtils.currencyToEmoji(_currency1),
                                   style: TextStyle(
                                     fontSize: 25,
                                   ),
@@ -115,7 +117,7 @@ class _HomePageState extends State<HomePage> {
                                         borderRadius:
                                             BorderRadius.circular(10))),
                                 child: Text(
-                                  CurrencyUtils.currencyToEmoji(_currency2!),
+                                  CurrencyUtils.currencyToEmoji(_currency2),
                                   style: TextStyle(
                                     fontSize: 25,
                                   ),
@@ -134,14 +136,15 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.white12,
                       ),
                       child: TextField(
-                        style: TextStyle(color: Colors.white, fontSize: 22),
+                        controller: _edit,
+                        style: const TextStyle(color: Colors.white, fontSize: 22),
                         textAlign: TextAlign.center,
                         cursorColor: Colors.white,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly
                         ],
-                        decoration: InputDecoration(
+                        decoration: const InputDecoration(
                             contentPadding: EdgeInsets.all(8),
                             border: InputBorder.none,
                             hintText: "0",
@@ -161,16 +164,30 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     const Expanded(child: Text("")),
                     Expanded(
-                        child: TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.0, end: 560464),
-                            duration: const Duration(milliseconds: 1500),
-                            builder: (context, value, child) {
-                              return Text(
-                                value.toStringAsFixed(1),
-                                style: const TextStyle(
+                        child: BlocBuilder<CurrencyBloc, CurrencyState>(
+                          builder: (context, state) {
+                            if(state is CurrencySuccess) {
+                              print('state');
+                              return TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0.0, end: state.value ?? 0),
+                                  duration: const Duration(milliseconds: 1500),
+                                  builder: (context, value, child) {
+                                    final finalResult = value * double.parse(_edit.text);
+                                    return Text(
+                                      finalResult.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontSize: 50, fontWeight: FontWeight.bold),
+                                    );
+                                  });
+                            } else {
+                              return const Text(
+                                "0.0",
+                                style: TextStyle(
                                     fontSize: 50, fontWeight: FontWeight.bold),
                               );
-                            })),
+                            }
+                          },
+                        )),
                     Expanded(
                       child: Center(
                         child: SizedBox(
@@ -179,7 +196,10 @@ class _HomePageState extends State<HomePage> {
                           //  height: 55,
                           child: ElevatedButton(
                             onPressed: () {
-                              setState(() {});
+                              BlocProvider.of<CurrencyBloc>(context).add(OnGenerate(_currency1.code, _currency2.code));
+                              setState(() {
+
+                              });
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
@@ -209,8 +229,6 @@ class _HomePageState extends State<HomePage> {
       showCurrencyName: true,
       showCurrencyCode: true,
       onSelect: (Currency currency) {
-        print(currency.flag);
-        print(currency.isFlagImage);
         if (id == 1) {
           _currency1 = currency;
         } else {
